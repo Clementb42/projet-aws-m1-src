@@ -1,0 +1,85 @@
+Description: Template CloudFormation permettant de gerer les ressources liees a la securite de l'infrastructure
+
+Parameters:
+
+  ProjectGroupName:
+    Type: String
+    Description: Nom de l'organisation fictive
+    Default: "m1srcaws"
+
+  Environment:
+    Type: String
+    Description: Environnement
+    AllowedValues: 
+      - prod
+      - test
+      - dev
+    Default: prod
+
+Resources:
+
+  # Security Group bloquant toutes les entrées
+  SecGroupNoIngress:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ProjectGroupName}-${Environment}-NoIngress-SG"
+      GroupDescription: "SG bloquant tout le traffic entrant"
+      VpcId: !ImportValue VPCID
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectGroupName}-${Environment}-NoIngress-SG"
+
+  # Security Group a attacher au Load Balancer pour permettre le traffic en provenance d'internet sur les ports 80/443
+  SecGroupALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Permet le traffic HTTP/HTTPS 
+      VpcId: !ImportValue VPCID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectGroupName}-${Environment}-SecGroupALB"
+
+  # Security Group a attacher aux instances web ec2 pour permettre le traffic en provenance de l'Application Load Balancer
+  SecGroupEC2WEBFromALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic from ALB
+      VpcId: !ImportValue VPCID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref SecGroupALB
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref SecGroupALB
+      Tags:
+        - Key: Name
+          Value: !Sub "${ProjectGroupName}-${Environment}-SecGroupEC2WEBFromALB"
+
+Outputs:
+
+  SecGroupALB:
+    Value: !Ref SecGroupALB
+    Export:
+      Name: SecGroupALB
+
+  SecGroupNoIngress:
+    Value: !Ref SecGroupNoIngress
+    Export:
+      Name: SecGroupNoIngress
+
+  SecGroupEC2WEBFromALB:
+    Value: !Ref SecGroupEC2WEBFromALB
+    Export:
+      Name: SecGroupEC2WEBFromALB

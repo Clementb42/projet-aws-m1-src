@@ -1,0 +1,163 @@
+Description: Template CloudFormation permettant de gerer les differents composants systeme de l'architecture cloud
+
+Parameters:
+
+  ProjectGroupName:
+    Type: String
+    Description: Nom de l'organisation fictive
+    Default: "M1SRCAWS"
+
+  Environment:
+    Type: String
+    Description: Environnement de deploiement
+    AllowedValues: 
+      - prod
+      - test
+      - dev
+    Default: prod
+  
+  InstanceType:
+    Type: String
+    Description: Type d'instance a deployer
+    Default: t2.micro
+
+  MinimimumCapacityASG:
+    Type: Number
+    Description: Nombre d'instances EC2 minimum 
+    Default: 4
+
+  DesiredCapacityASG:
+    Type: Number
+    Description: Nombre d'instances EC2 que l'on desire via l'ASG
+    Default: 4
+
+  MaximumCapacityASG:
+    Type: Number
+    Description: Capacite maximum du nombre d'instances que peut deployer l'ASG
+    Default: 10
+
+Resources:
+
+  ###-------------###
+  ###-----ASG-----###
+  ###-------------###
+
+
+  # Configuration du LaunchTemplate
+  LaunchTemplateWEBEC2:
+    Type:  AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ${ProjectGroupName}-${Environment}-EC2-WEB-LaunchTemplate
+      LaunchTemplateData:
+        ImageId: ami-00ac45f3035ff009e
+        InstanceType: !Ref InstanceType 
+        SecurityGroupIds:
+        - !ImportValue SecGroupEC2WEBFromALB
+        IamInstanceProfile:
+          Arn: !ImportValue InstanceProfileWebEC2Arn
+        UserData:
+          'Fn::Base64': !Sub |
+            #!/bin/bash
+            sudo apt remove awscli
+            sudo apt update -y && apt upgrade -y
+            sudo apt install unzip
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+            sudo aws s3 cp s3://m1srcaws-prod-deployment-bucket/init_ec2.sh /tmp
+            sudo bash /tmp/init_ec2.sh
+
+  # Configuration de l'AutoScalingGroup
+  AutoScalingGroupTest:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AutoScalingGroupName: !Sub autoscaling-${ProjectGroupName}-${Environment}
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplateWEBEC2
+        Version: !GetAtt LaunchTemplateWEBEC2.LatestVersionNumber
+      MaxSize: !Ref MaximumCapacityASG
+      MinSize: !Ref MinimimumCapacityASG
+      DesiredCapacity: !Ref DesiredCapacityASG
+      VPCZoneIdentifier:
+        - !ImportValue PrivateSubnet1
+        - !ImportValue PrivateSubnet2
+      TargetGroupARNs:
+        - !Ref DefaultTargetGroup
+      Tags:
+        - Key: Name
+          Value: !Sub autoscaling-${ProjectGroupName}-${Environment}
+          PropagateAtLaunch: True
+          
+
+  # Création de la Policy d'AutoScaling
+  ScalingPolicyCPUUsage:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroupTest
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: 40
+          
+  ###-------------###
+  ###-----ALB-----###
+  ###-------------###
+
+
+  # Configuration de l'Application Load Balancer
+  LoadBalancer:
+      Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+      Properties:
+          Name: !Sub ALB-${ProjectGroupName}-${Environment}
+          Type: application
+          Scheme: internet-facing
+          Subnets: 
+            - !ImportValue PublicSubnet1
+            - !ImportValue PublicSubnet2
+          SecurityGroups:
+              - !ImportValue SecGroupALB
+          Tags:
+              - Key: Name
+                Value: !Sub ALB-${ProjectGroupName}-${Environment}
+
+  # Groupe Cible de l'Application Load Balancer
+  DefaultTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub TargetGroup-${ProjectGroupName}-${Environment}
+      VpcId: !ImportValue VPCID
+      Protocol: HTTP
+      Port: 80
+      HealthCheckProtocol: HTTP
+      HealthCheckPort: "traffic-port"
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      TargetType: instance
+      Tags:
+        - Key: Name
+          Value: !Sub TargetGroup-${ProjectGroupName}-${Environment}
+
+
+  # Listener HTTP du Load Balancer 
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref DefaultTargetGroup
+
+Outputs: 
+
+  LoadBalancerDNSName:
+    Description: Le nom DNS du LoadBalancer
+    Value: !GetAtt LoadBalancer.DNSName
+
+
+      

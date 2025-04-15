@@ -1,0 +1,87 @@
+Description: Template CloudFormation permettant la gestion des droits IAM
+
+Parameters:
+
+  ProjectGroupName:
+    Type: String
+    Description: Nom permettant de tag afin d'identifier correctement les ressources
+    Default: "m1srcaws"
+
+  Environment:
+    Type: String
+    Description: Environnement de deploiement 
+    AllowedValues: 
+      - prod
+      - test
+      - dev
+
+Resources:
+
+  ## Roles
+
+  # Role EC2 des instances WEB
+  InstanceRoleWEBEC2:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: Ec2-Web-RoleInstance
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy 
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore # Policy necessaire pour Session Manager, pas d'ouverture de port par SSH.
+      Policies:
+        # Policy permettant de recupérer le script d'initialisation des instances WEB dans le bucket s3 de deploiement
+        - PolicyName: Ec2-Deployment-Bucket-Policy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObjectVersion
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "arn:aws:s3:::${ProjectGroupName}-${Environment}-deployment-bucket"
+                  - !Sub "arn:aws:s3:::${ProjectGroupName}-${Environment}-deployment-bucket/*"
+        # Policy permettant de récupérer le nom de l'instance depuis le service EC2 afin de setup le hostname à partir du user-data
+        - PolicyName: DescribeEC2TagsPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ec2:DescribeTags'
+                  - 'ec2:DescribeInstances'
+                Resource: "*"
+
+
+  ## Profile d'instance
+
+  # Profile d'instance pour les instances WEB
+  InstanceProfileWebEC2:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: "EC2-WEB-InstanceProfile"
+      Roles:
+        - !Ref InstanceRoleWEBEC2
+
+Outputs: 
+
+  InstanceProfileWebEC2:
+    Value: !Ref InstanceProfileWebEC2
+    Export:
+      Name: "InstanceProfileWebEC2"
+
+  InstanceProfileWebEC2Arn:
+    Description: "ARN du profile d'instance pour les instances WEB"
+    Value: !GetAtt InstanceProfileWebEC2.Arn
+    Export:
+      Name: InstanceProfileWebEC2Arn
+
