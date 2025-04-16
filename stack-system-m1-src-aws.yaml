@@ -5,7 +5,7 @@ Parameters:
   ProjectGroupName:
     Type: String
     Description: Nom de l'organisation fictive
-    Default: "M1SRCAWS"
+    Default: "m1srcaws"
 
   Environment:
     Type: String

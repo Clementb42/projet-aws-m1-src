@@ -1,0 +1,67 @@
+Projet: Déploiement d'une Application Haute Disponibilité sur AWS avec ASG, ALB et Multi-AZ
+Objectif:
+
+Déployer une architecture haute disponibilité sur AWS en respectant le AWS Well-Architected Framework, avec :
+
+   -  2 zones de disponibilité (AZ A et AZ B).
+
+   - Des serveurs EC2 répartis dans chaque AZ via un Auto Scaling Group (ASG) et un Launch Template.
+
+   - Un Application Load Balancer (ALB) pour répartir le trafic.
+
+   - Une architecture à 2 niveaux (web + application ou public/privé). 
+
+Instructions Claires à Suivre:
+
+ - Un compte AWS avec accès à EC2, VPC, ASG, ALB.
+
+ - Connaissances de base en réseaux AWS (VPC, subnets, routes).
+
+ - Outil de déploiement: AWS Console, Terraform ou CloudFormation (au choix).
+
+2. Architecture Cible
+  Utiliser draw.io ou Lucidchart pour le schéma
+
+Niveau 1 (Public): ALB répartissant le trafic entre 2 AZ.
+Niveau 2 (Privé): 
+  Private Subnets dans AZ A et AZ B pour les instances EC2.
+  ASG avec Launch Template déployant des instances EC2 dans les 2 AZ.
+
+Haute disponibilité:
+
+  Les instances EC2 sont monitorées et remplacées automatiquement par l'ASG en cas de défaillance.
+  L'ALB redirige le trafic vers l'AZ active.
+
+3. Étapes Techniques
+
+Étape 1 : Créer le VPC et les Subnets
+Étape 2 : Configurer le Launch Template
+Étape 3 : Déployer l'Auto Scaling Group (ASG)
+Étape 4 : Configurer l'Application Load Balancer (ALB)
+Étape 5 : Tests de Haute Disponibilité
+  Simulez une panne :
+     - Arrêtez une instance EC2 → Vérifiez que l'ASG lance un remplacement.
+     - Désactivez une AZ → Vérifiez que l'ALB route le trafic vers l'AZ active.
+
+5. Livrables Attendus
+
+- Schéma d'architecture au format PDF.
+- Code IaC (Terraform/CloudFormation) ou étapes manuelles détaillées (captures d'ecran de la console AWS).
+- Résultats des tests de haute disponibilité (copies d'écran).
+- Rapport expliquant les choix techniques (500 mots) liés au Well-Architected Framework.
+
+6. Critères d'évaluation
+Architecture conforme (2 AZ, ASG, ALB)	
+Respect du Well-Architected Framework	
+Fonctionnalité de haute disponibilité	
+Qualité du code/déploiement	
+Rapport technique et tests
+
+NB: vous allez travailler en équipe, en groupe 5 personnes.
+
+
+
+
+
+
+
