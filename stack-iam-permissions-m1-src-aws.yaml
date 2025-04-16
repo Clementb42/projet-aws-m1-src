@@ -4,7 +4,7 @@ Parameters:
 
   ProjectGroupName:
     Type: String
-    Description: Nom permettant de tag afin d'identifier correctement les ressources
+    Description: Nom de l'organisation fictive
     Default: "m1srcaws"
 
   Environment:

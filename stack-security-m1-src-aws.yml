@@ -9,7 +9,7 @@ Parameters:
 
   Environment:
     Type: String
-    Description: Environnement
+    Description: Environnement de deploiement 
     AllowedValues: 
       - prod
       - test
