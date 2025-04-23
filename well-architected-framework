@@ -1,0 +1,29 @@
+## Excellence Opérationnelle
+
+Nous avons respecté les principes de conception du pilier Excellence Opérationnelle en nous appuyant sur l’Infrastructure as Code (IaC) via CloudFormation, l’outil natif d’AWS.
+
+Les templates sont découpés de manière modulaire, chacun déployant un ensemble cohérent de ressources. Cette structuration facilite la maintenabilité et l’évolutivité. Les templates communiquent entre eux via les outputs, et sont paramétrables grâce à l’utilisation de variables, permettant ainsi leur réutilisation sur différents environnements (dev, staging, prod, etc.).
+
+Le développement s’est fait de manière itérative, avec des modifications fréquentes mais limitées afin de détecter rapidement les erreurs et garantir une mise en production contrôlée.
+
+## Sécurité
+
+Le principe de moindre privilège a été systématiquement appliqué sur les rôles et politiques IAM. Chaque ressource ne dispose que des permissions strictement nécessaires à son bon fonctionnement, limitant ainsi la surface d’attaque et les risques de compromission.
+
+## Fiabilité
+
+L’architecture est conçue pour résister aux pannes grâce à l’utilisation de plusieurs zones de disponibilité (AZ). Le load balancer (ALB) répartit le trafic entre ces zones, garantissant une continuité de service même en cas d’indisponibilité d’un datacenter.
+
+Cette redondance est couplée à un Auto Scaling Group (ASG), qui applique le paradigme du cloud "cattle, not pets" : les instances sont traitées comme interchangeables. En cas de défaillance, une instance est automatiquement retirée du pool grâce aux health checks et remplacée sans intervention manuelle.
+
+## Efficacité des Performances
+
+La performance de l’infrastructure repose sur l’Auto Scaling Group, piloté par des politiques basées sur des métriques CloudWatch. Cela permet d’ajuster dynamiquement le nombre d’instances en fonction de la charge réelle, tout en assurant une disponibilité optimale des services.
+
+## Optimisation des Coûts
+
+L’ASG contribue également à la maîtrise des coûts en allouant les ressources de manière dynamique. Nous consommons uniquement ce qui est nécessaire en termes de capacité de calcul, évitant ainsi le surprovisionnement inutile.
+
+## Durabilité
+
+L'AutoScalingGroup permet de limiter l'impact de notre compute sur l'environnement, en effet, une fois la charge redescendu les instances sont désinscrites et de fait ne consomment plus d'énergie.
