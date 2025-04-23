@@ -26,3 +26,10 @@ Chaque stack est conçue pour gérer des ressources interdépendantes dans une c
 - AWS S3
 - Script Bash (init_ec2.sh)
 
+## Well Archicted Framework
+
+Le document demandé se situe ici : well-archicted-framework
+
+## Proof Of Concept
+
+Les captures d'écrans de la console AWS se trouve dans le dossier image comme demandé, justifiant du bon fonctionnement du déploiement de l'infrastructure as code. 
